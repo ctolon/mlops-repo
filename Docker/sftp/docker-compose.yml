@@ -1,0 +1,117 @@
+version: '3'
+services:
+  sftp:
+    image: ${SFTP_IMAGE}
+    container_name: sftp
+    restart: always
+    expose:
+      - "${SFTP_PORT}"
+    ports:
+      - "${SFTP_PORT}:${SFTP_PORT}"
+    command:
+      - ${SFTP_USERNAME}:${SFTP_PASSWORD}:1001::${MLFLOW_ARTIFACT_STORE}   # syntax: user:password[:e][:uid[:gid[:dir1[,dir2]...]]]
+    volumes:
+      - ./${MLFLOW_ARTIFACT_STORE}:/home/${SFTP_USERNAME}/${MLFLOW_ARTIFACT_STORE}
+      - ./keys/ssh_host_rsa_key.pub:/home/${SFTP_USERNAME}/.ssh/ssh_host_rsa_key.pub:ro
+      - ./keys/ssh_host_ed25519_key.pub:/home/${SFTP_USERNAME}/.ssh/ssh_host_ed25519_key.pub:ro
+
+  postgresql:
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
+      args:
+        - POSTGRESQL_VERSION=$POSTGRESQL_VERSION
+    image: postgresql-shm:5.7.32
+    container_name: postgresql-shm
+    restart: always
+    hostname: postgresql
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+      - POSTGRES_HOST_AUTH_METHOD=$POSTGRES_HOST_AUTH_METHOD
+      - COMPOSE_HTTP_TIMEOUT=120
+    ports:
+      - "3307:3306"   # "${POSTGRES_PORT}:${POSTGRES_PORT}"
+    volumes:
+      - $PWD/container_data/postgresql:/var/lib/postgresql
+      - $PWD/conf/postgresql/init:/docker-entrypoint-initdb.d
+      - ./${POSTGRES_STORE}:/var/lib/postgresql/data
+    cap_add: 
+      - SYS_NICE # CAP_SYS_NICE
+
+  mlflow:
+    build:
+      context: .
+      dockerfile: Dockerfile.mlflow
+      args:
+        - MLFLOW_ARTIFACT_DIR=$MLFLOW_ARTIFACT_DIR
+        - MLFLOW_TRACKING_URI=$MLFLOW_TRACKING_URI
+    container_name: mlflow-tracking_postgres
+    image: mlflow-tracking:1.12.1
+    restart: on-failure
+    hostname: mlflow-tracking
+    environment:
+      MLFLOW_TRACKING_SERVER_HOST: ${MLFLOW_TRACKING_SERVER_HOST}
+      MLFLOW_TRACKING_SERVER_PORT: ${MLFLOW_TRACKING_SERVER_PORT}
+      MLFLOW_ARTIFACT_STORE: ${MLFLOW_ARTIFACT_STORE}
+      MLFLOW_BACKEND_STORE: ${MLFLOW_BACKEND_STORE}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DATABASE: ${POSTGRES_DATABASE}
+      POSTGRES_PORT: 3307:3306
+      WAIT_FOR_IT_TIMEOUT: ${WAIT_FOR_IT_TIMEOUT}
+      SFTP_USERNAME: ${SFTP_USERNAME}
+      SFTP_PASSWORD: ${SFTP_PASSWORD}
+      SFTP_HOST: ${SFTP_HOST}
+    depends_on:
+      - postgresql
+      - sftp
+    links:
+      - "postgresql:postgresql"
+      - "sftp:sftp"
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./${MLFLOW_ARTIFACT_STORE}:/${MLFLOW_ARTIFACT_STORE}
+      - ./keys/ssh_host_rsa_key:/root/.ssh/ssh_host_rsa_key:ro
+      - ./keys/ssh_host_ed25519_key:/root/.ssh/ssh_host_ed25519_key:ro
+      - ./keys/config:/root/.ssh/config:ro
+    command: >
+      /bin/bash -c "sleep 3
+      && cd /root/.ssh
+      && ssh-keyscan ${SFTP_HOST} >> known_hosts
+      && cd /server
+      && ./wait-for-it.sh ${MLFLOW_BACKEND_STORE}:${POSTGRES_PORT} -t ${WAIT_FOR_IT_TIMEOUT} -- mlflow server
+      --backend-store-uri postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${MLFLOW_BACKEND_STORE}:${POSTGRES_PORT}/${POSTGRES_DATABASE}
+      --default-artifact-root sftp://${SFTP_USERNAME}:${SFTP_PASSWORD}@${SFTP_HOST}/${MLFLOW_ARTIFACT_STORE}
+      --host ${MLFLOW_TRACKING_SERVER_HOST}
+      --port ${MLFLOW_TRACKING_SERVER_PORT}"
+
+  jupyter:
+    user: root
+    build:
+      context: .
+      dockerfile: Dockerfile.jupyter
+      args: 
+        - MLFLOW_VERSION=${MLFLOW_VERSION}
+        - JUPYTER_SCIPY_IMAGE=${JUPYTER_SCIPY_IMAGE}
+        - JUPYTER_SCIPY_VERSION=${JUPYTER_SCIPY_VERSION}
+    image: workspace/jupyter
+    container_name: jupyter
+    restart: on-failure
+    ports:
+      - "${JUPYTER_PORT}:${JUPYTER_PORT}"
+    depends_on: 
+      - postgresql
+      - mlflow
+      - sftp
+    environment:
+      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI}
+      JUPYTER_ENABLE_LAB: ${JUPYTER_ENABLE_LAB}
+      SFTP_HOST: ${SFTP_HOST}
+      JUPYTER_USERNAME: ${JUPYTER_USERNAME}
+    volumes:
+      - ./notebooks/:/home/${JUPYTER_USERNAME}/work
+      - ./keys/ssh_host_rsa_key:/home/${JUPYTER_USERNAME}/.ssh/ssh_host_rsa_key:ro
+      - ./keys/ssh_host_ed25519_key:/home/${JUPYTER_USERNAME}/.ssh/ssh_host_ed25519_key:ro
+      - ./keys/config:/home/${JUPYTER_USERNAME}/.ssh/config:ro

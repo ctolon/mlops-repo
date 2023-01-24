@@ -1,10 +1,10 @@
-# Docker -> MLflow + Postgres + Pure FTPD Server
+# Docker - Data Science Using Spark and MLFlow Tracking
 
 ### Tech Stacks
 
 * [PostgreSQL](https://www.postgresql.org/)
 * [MLflow](https://mlflow.org/docs/latest/index.html)
-* FTP Server
+* SFTP Server
 
 This repo is combines several reference repos
 * Postgres is uniquely prepared.
@@ -25,9 +25,8 @@ This repo is combines several reference repos
 **Persisting Data**
 
 In order to save data between container runs, we use Docker's volume feature to persist data to the host disk in the directory 'container_data'.
- * home/ftp-user/mlartifacts - model tracking
- * home/ftp-user/mlruns - meta.yaml files (currently not working due to ftp issues)
- * home/ftp-pass/pureftpd.passwd - passwords for ftp server
+ * container_data/postgresql - MySQL data from /var/lib/mysql
+ * containder_data/artifacts...
  
 ### Build the containers
 ```
@@ -54,7 +53,6 @@ docker compose build <server_name> (ex. spark_hive)
 
 ### Project Structure
 
-```bash
 ├── conf
 │   ├── mlflow
 │   │   └── run_server.sh
@@ -74,7 +72,7 @@ docker compose build <server_name> (ex. spark_hive)
 ├── README.md
 ├── requirements_list
 └── run.sh
-```
+
 
 ### .env Config File Template
 
@@ -95,7 +93,5 @@ MLFLOW_TRACKING_URI=postgresql+psycopg2://postgres:mysecret@postgresql/mlflow
 ### Usernames and passwords
 
 **Postgresql**: postgres - mysecret
-
-Note: postgres is root user.
 
 **FTPD Server**: user - pass
