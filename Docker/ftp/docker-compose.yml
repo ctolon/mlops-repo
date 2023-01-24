@@ -1,0 +1,66 @@
+version: '3'
+services:
+  postgresql:
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
+      args:
+        - POSTGRESQL_VERSION=$POSTGRESQL_VERSION
+    image: postgresql-shm:5.7.32
+    container_name: postgresql-shm
+    hostname: postgresql
+    environment:
+      - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+      - POSTGRES_HOST_AUTH_METHOD=$POSTGRES_HOST_AUTH_METHOD
+      - COMPOSE_HTTP_TIMEOUT=120
+    ports:
+      - "3307:3306"
+    volumes:
+      - $PWD/container_data/postgresql:/var/lib/postgresql
+      - $PWD/conf/postgresql/init:/docker-entrypoint-initdb.d
+    cap_add: 
+      - SYS_NICE # CAP_SYS_NICE
+
+  ftpd_server:
+    image: stilliard/pure-ftpd
+    container_name: pure-ftpd
+    ports:
+      - "21:21"
+      - "20:20"
+      - "30000-30009:30000-30009"
+    volumes:
+      - "/home/ctolon/ftp-user:/home/username"
+      - "/home/ctolon/ftp-pass:/etc/pure-ftpd/passwd"
+    environment:
+      PUBLICHOST: "0.0.0.0"
+      FTP_USER_NAME: user
+      FTP_USER_PASS: pass
+      FTP_USER_HOME: /home/username
+    restart: always
+
+  mlflow:
+    build:
+      context: .
+      dockerfile: Dockerfile.mlflow
+      args:
+        - MLFLOW_ARTIFACT_DIR=$MLFLOW_ARTIFACT_DIR
+        - MLFLOW_TRACKING_URI=$MLFLOW_TRACKING_URI
+    container_name: mlflow-tracking_postgres
+    image: mlflow-tracking:1.12.1
+    hostname: mlflow-tracking
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - MLFLOW_ARTIFACT_URI=${MLFLOW_ARTIFACT_DIR}
+      - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
+    depends_on:
+      - postgresql
+      - ftpd_server
+    links:
+      - "postgresql:postgresql"
+      - "ftpd_server:ftpd_server"
+    ports:
+      - "5000:5000"
+    volumes:
+      - $PWD/container_data/mlflow/runs:/home/username/mlruns
+
+
