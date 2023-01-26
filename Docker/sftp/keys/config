@@ -1,6 +1,7 @@
 Host sftp
   HostName sftp
   User mlflowuser
+  IdentityFile ~/.ssh/id_rsa
   PasswordAuthentication yes
   Port 22
   PubkeyAcceptedAlgorithms +ssh-rsa

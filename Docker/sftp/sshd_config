@@ -21,4 +21,9 @@ ChrootDirectory %h
 
 # Enable this for more logs
 LogLevel VERBOSE
-PubkeyAcceptedAlgorithms=+ssh-rsa
+PubkeyAcceptedAlgorithms +ssh-rsa
+HostkeyAlgorithms +ssh-rsa
+
+PubkeyAuthentication yes
+
+
