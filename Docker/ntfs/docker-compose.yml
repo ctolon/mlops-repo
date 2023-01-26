@@ -1,4 +1,4 @@
-version: '3'
+version: '3.7'
 services:
   postgresql:
     build:
@@ -16,26 +16,10 @@ services:
     ports:
       - "3307:3306"
     volumes:
-      - $PWD/container_data/postgresql:/var/lib/postgresql
+      - $PWD/container_data/postgresql:/var/lib/postgresql/
       - $PWD/docker/postgres/init:/docker-entrypoint-initdb.d
     cap_add: 
       - SYS_NICE # CAP_SYS_NICE
-
-  ftpd_server:
-    image: stilliard/pure-ftpd:hardened
-    container_name: pure-ftpd
-    ports:
-      - "21:21"
-      - "20:20"
-      - "30000-30009:30000-30009"
-    environment:
-      PUBLICHOST: "localhost"
-      FTP_USER_NAME: "test"
-      FTP_USER_PASS: "test"
-      FTP_USER_HOME: "/home/test"
-    volumes:
-      - "/home/ctolon/ftp-user:/home/test"
-      - "/home/ctolon/ftp-pass:/etc/pure-ftpd/passwd"
 
   mlflow:
     build:
@@ -51,18 +35,13 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - MLFLOW_ARTIFACT_URI=${MLFLOW_ARTIFACT_DIR}
       - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
-      - FTP_USER_NAME=${FTP_USER_NAME}
-      - FTP_USER_PASS=${FTP_USER_PASS}
-      - FTP_USER_HOME=${FTP_USER_HOME}
     depends_on:
       - postgresql
-      - ftpd_server
     links:
       - "postgresql:postgresql"
-      - "ftpd_server:ftpd_server"
     ports:
       - "5000:5000"
     volumes:
-      - /home/ctolon/ftp-user:/home/username/mlruns
+      - /home/ctolon:/mnt/mlruns
 
 

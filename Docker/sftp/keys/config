@@ -3,3 +3,5 @@ Host sftp
   User mlflowuser
   PasswordAuthentication yes
   Port 22
+  PubkeyAcceptedAlgorithms +ssh-rsa
+  HostkeyAlgorithms +ssh-rsa

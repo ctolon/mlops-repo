@@ -29,8 +29,13 @@ In order to save data between container runs, we use Docker's volume feature to 
  * containder_data/artifacts...
  
 ### Build the containers
+
 ```
 docker-compose -f docker-compose.yml build
+```
+
+```
+docker-compose build --no-cache
 ```
 
 ### Launch the containers
@@ -95,3 +100,161 @@ MLFLOW_TRACKING_URI=postgresql+psycopg2://postgres:mysecret@postgresql/mlflow
 **Postgresql**: postgres - mysecret
 
 **FTPD Server**: user - pass
+
+SSHD CONFİG FİLE İN ETC/SSH/
+
+# Secure defaults
+# See: https://stribika.github.io/2015/01/04/secure-secure-shell.html
+Protocol 2
+HostKey /etc/ssh/ssh_host_ed25519_key
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_ecdsa_key
+
+# Faster connection
+# See: https://github.com/atmoz/sftp/issues/11
+UseDNS no
+
+# Limited access
+PermitRootLogin yes
+X11Forwarding yes
+AllowTcpForwarding yes
+
+# Force sftp and chroot jail
+Subsystem sftp internal-sftp
+ForceCommand internal-sftp
+ChrootDirectory %h
+
+# Enable this for more logs
+LogLevel VERBOSE
+PubkeyAcceptedAlgorithms=+ssh-rsa
+HostKeyAlgorithms +ssh-rsa,ssh-dss 
+
+
+Host * 
+HostkeyAlgorithms +ssh-rsa 
+PubkeyAcceptedKeyTypes +ssh-rsa
+
+
+
+
+  mlflow:
+    build:
+      context: ./docker/mlflow
+      dockerfile: Dockerfile
+      args:
+        - MLFLOW_ARTIFACT_DIR=$MLFLOW_ARTIFACT_DIR
+        - MLFLOW_TRACKING_URI=$MLFLOW_TRACKING_URI
+    container_name: mlflow-tracking_postgres
+    image: mlflow-tracking:1.12.1
+    restart: on-failure
+    hostname: mlflow-tracking
+    environment:
+      MLFLOW_TRACKING_SERVER_HOST: ${MLFLOW_TRACKING_SERVER_HOST}
+      MLFLOW_TRACKING_SERVER_PORT: ${MLFLOW_TRACKING_SERVER_PORT}
+      MLFLOW_ARTIFACT_STORE: ${MLFLOW_ARTIFACT_STORE}
+      MLFLOW_BACKEND_STORE: ${MLFLOW_BACKEND_STORE}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DATABASE: ${POSTGRES_DATABASE}
+      POSTGRES_PORT: 3307:3306
+      WAIT_FOR_IT_TIMEOUT: ${WAIT_FOR_IT_TIMEOUT}
+      SFTP_USERNAME: ${SFTP_USERNAME}
+      SFTP_PASSWORD: ${SFTP_PASSWORD}
+      SFTP_HOST: ${SFTP_HOST}
+    depends_on:
+      - postgresql
+      - sftp
+    links:
+      - "postgresql:postgresql"
+      - "sftp:sftp"
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./${MLFLOW_ARTIFACT_STORE}:/${MLFLOW_ARTIFACT_STORE}
+      - ./keys/ssh_host_rsa_key:/root/.ssh/ssh_host_rsa_key:ro
+      - ./keys/ssh_host_ed25519_key:/root/.ssh/ssh_host_ed25519_key:ro
+      - ./keys/config:/root/.ssh/config:ro
+    command: >
+      /bin/bash -c "sleep 3
+      && cd /root/.ssh
+      && ssh-keyscan ${SFTP_HOST} >> known_hosts
+      && cd /server
+      && mlflow server
+      --backend-store-uri postgresql://postgres2:${POSTGRES_PASSWORD}@${MLFLOW_BACKEND_STORE}:${POSTGRES_PORT}/${POSTGRES_DATABASE}
+      --default-artifact-root sftp://${SFTP_USERNAME}:${SFTP_PASSWORD}@${SFTP_HOST}/${MLFLOW_ARTIFACT_STORE}
+      --host ${MLFLOW_TRACKING_SERVER_HOST}
+      --port ${MLFLOW_TRACKING_SERVER_PORT}"
+
+docker exec -it sftp bin/bash
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+FROM python:3.7.8
+RUN apt-get update
+
+ARG MLFLOW_VERSION
+ARG SERVER_DIR=/server
+
+# BASIC PACKAGES
+RUN python -m pip install --upgrade setuptools pip
+RUN apt-get install git
+
+# python c deps
+#RUN apk add --no-cache alpine-sdk postgresql-dev postgresql-client openssh openssl-dev 
+
+# PERFORMANCE PROVIDERS (BEST PRACTICE)
+#RUN apt-get install libyaml-cpp-dev libyaml-dev
+
+# MLflow main package
+RUN python -m pip install mlflow==1.29.0
+
+RUN mkdir -p ${SERVER_DIR}
+
+# If python version >= 3.7
+RUN python -m pip install protobuf==3.20.*
+
+# Postgres Binary driver for dev
+#RUN python -m pip install psycopg2-binary
+
+# Postgres main driver for production
+RUN python -m pip install psycopg2
+
+# A simple interface to SFTP with python support
+RUN python -m pip install pysftp
+
+COPY ./scripts/wait-for-it.sh ${SERVER_DIR}/
+RUN chmod +x ${SERVER_DIR}/wait-for-it.sh
+
+WORKDIR ${SERVER_DIR}
+
+ARG MLFLOW_TRACKING_INSECURE_TLS 
+ENV MLFLOW_TRACKING_INSECURE_TLS=$MLFLOW_TRACKING_INSECURE_TLS
+
+EXPOSE $MLFLOW_TRACKING_SERVER_PORT
+
+
+
+
+
+
+
+
+    command: >
+      /bin/bash -c "sleep 3
+      && cd /root/.ssh
+      && ssh-keyscan ${SFTP_HOST} >> known_hosts"
+
+
+
+

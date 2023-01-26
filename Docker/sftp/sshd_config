@@ -10,9 +10,9 @@ HostKey /etc/ssh/ssh_host_ecdsa_key
 UseDNS no
 
 # Limited access
-PermitRootLogin no
-X11Forwarding no
-AllowTcpForwarding no
+PermitRootLogin yes
+X11Forwarding yes
+AllowTcpForwarding yes
 
 # Force sftp and chroot jail
 Subsystem sftp internal-sftp
@@ -21,3 +21,4 @@ ChrootDirectory %h
 
 # Enable this for more logs
 LogLevel VERBOSE
+PubkeyAcceptedAlgorithms=+ssh-rsa

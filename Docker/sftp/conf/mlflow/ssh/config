@@ -3,3 +3,5 @@ Host mlflow
      Port 22
      User mlflow
      IdentityFile ~/.ssh/id_rsa
+     PubkeyAcceptedAlgorithms +ssh-rsa
+     HostkeyAlgorithms +ssh-rsa
