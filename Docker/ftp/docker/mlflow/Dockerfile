@@ -1,4 +1,4 @@
-FROM python:3.7.8
+FROM python:3.8.5
 RUN apt-get update
 
 # BASIC PACKAGES
@@ -12,7 +12,8 @@ RUN apt-get install git
 #RUN apt-get install libyaml-cpp-dev libyaml-dev
 
 # MLflow main package
-RUN python -m pip install mlflow==1.29.0
+#RUN python -m pip install mlflow==1.29.0
+RUN python -m pip install mlflow==2.1.1
 
 # If python version >= 3.7
 RUN python -m pip install protobuf==3.20.*
@@ -52,4 +53,5 @@ EXPOSE 5000/tcp
 ENTRYPOINT ["mlflow", "server", "--host", "0.0.0.0", \
     "--port", "5000", "--backend-store-uri", \
     "postgresql+psycopg2://postgres:mysecret@postgresql/mlflow", \
-    "--default-artifact-root", "ftp://test:test@0.0.0.0/mlartifacts"]
+    "--default-artifact-root", "ftp://kral:123@127.0.0.1/mlartifacts", \
+    "--no-serve-artifacts"]

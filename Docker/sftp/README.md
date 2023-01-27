@@ -196,6 +196,128 @@ docker exec -it sftp bin/bash
 
 
 
+# Secure defaults
+# See: https://stribika.github.io/2015/01/04/secure-secure-shell.html
+Protocol 2
+HostKey /etc/ssh/ssh_host_ed25519_key
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_ecdsa_key
+
+# Faster connection
+# See: https://github.com/atmoz/sftp/issues/11
+UseDNS no
+
+# Limited access
+PermitRootLogin yes
+X11Forwarding yes
+AllowTcpForwarding yes
+
+# Force sftp and chroot jail
+Subsystem sftp internal-sftp
+ForceCommand internal-sftp
+ChrootDirectory %h
+
+# Enable this for more logs
+LogLevel VERBOSE
+PubkeyAcceptedAlgorithms +ssh-rsa
+HostkeyAlgorithms +ssh-rsa
+
+PubkeyAuthentication yes
+bash-5.1# cat
+^C
+bash-5.1# ^C
+bash-5.1# ls
+ssh_host_ecdsa_key        ssh_host_ed25519_key      ssh_host_rsa_key          sshd_config
+ssh_host_ecdsa_key.pub    ssh_host_ed25519_key.pub  ssh_host_rsa_key.pub
+bash-5.1# cat sshd_config
+# Secure defaults
+# See: https://stribika.github.io/2015/01/04/secure-secure-shell.html
+Protocol 2
+HostKey /etc/ssh/ssh_host_ed25519_key
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_ecdsa_key
+
+# Faster connection
+# See: https://github.com/atmoz/sftp/issues/11
+UseDNS no
+
+# Limited access
+PermitRootLogin yes
+X11Forwarding yes
+AllowTcpForwarding yes
+
+# Force sftp and chroot jail
+Subsystem sftp internal-sftp
+ForceCommand internal-sftp
+ChrootDirectory %h
+
+# Enable this for more logs
+LogLevel VERBOSE
+PubkeyAcceptedAlgorithms +ssh-rsa
+HostkeyAlgorithms +ssh-rsa
+
+PubkeyAuthentication yes
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Secure defaults
+# See: https://stribika.github.io/2015/01/04/secure-secure-shell.html
+Protocol 2
+HostKey /etc/ssh/ssh_host_ed25519_key
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_ecdsa_key
+
+# Faster connection
+# See: https://github.com/atmoz/sftp/issues/11
+UseDNS no
+
+# Limited access
+PermitRootLogin yes
+X11Forwarding yes
+AllowTcpForwarding yes
+
+# Force sftp and chroot jail
+Subsystem sftp internal-sftp
+ForceCommand internal-sftp
+ChrootDirectory %h
+
+# Enable this for more logs
+PubkeyAcceptedAlgorithms=+ssh-rsa
+HostkeyAlgorithms +ssh-rsa
+PubkeyAcceptedKeyTypes +ssh-rsa
+
+PubkeyAuthentication yes
+SyslogFacility LOCAL0
+LogLevel DEBUG3
+
+
+StrictModes no
+
+
+
+
+
+
+
+
 
 
 
@@ -245,7 +367,7 @@ EXPOSE $MLFLOW_TRACKING_SERVER_PORT
 
 
 
-
+TODO: Config dosyasını fixle keys altındaki
 
 
 

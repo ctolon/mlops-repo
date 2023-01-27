@@ -1,7 +1,43 @@
 version: '3'
 
 
+networks:
+  net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.5.0.0/16
+          gateway: 10.5.0.1
+          ip_range: 10.5.0.0/24
 services:
+  ftp:
+    container_name: ftp_mlflow
+    image: fauria/vsftpd
+    #fauria/vsftpd
+    #delfer/alpine-ftp-server
+    environment:
+      #- PASV_ADDRESS=127.0.0.1
+      - FTP_USER=${FTP_USER_NAME}
+      - FTP_PASS=${FTP_USER_PASS}
+      #- FTP_PASSWORD=${FTP_USER_PASS}
+      #- HOST=127.0.0.1
+      - ADDRESS=10.5.0.3
+      #- MIN_PORT=30000
+      #- MAX_PORT=30009
+      - PASV_MIN_PORT=30000
+      - PASV_MAX_PORT=30009
+      #- LOCAL_UMASK=777
+      #- FILE_OPEN_MODE=777
+      - PASV_ADDR_RESOLVE=YES
+      - PASV_ADDRESS=10.5.0.3
+    networks:
+      net:
+        ipv4_address: 10.5.0.3
+    ports:
+      - "21:21"
+      - "20:20"
+      - "30000-30009:30000-30009"
+
   postgresql:
     build:
       context: ./docker/postgres
@@ -23,32 +59,6 @@ services:
     cap_add: 
       - SYS_NICE # CAP_SYS_NICE
 
-  ftpd_server:
-    image: stilliard/pure-ftpd:hardened
-    container_name: pure-ftpd
-    ports:
-      - "21:21"
-      - "20:20"
-      - "30000-30009:30000-30009"
-
-    environment:
-      PUBLICHOST: 10.5.0.3
-      FTP_USER_NAME: "test"
-      FTP_USER_PASS: "test"
-      FTP_USER_HOME: "/home/test"
-      FTP_USER_UID: 33
-      FTP_USER_GID: 33
-      ###
-      #ADDED_FLAGS: "--tls=2"
-      #TLS_CN: "**** FTP"
-      #TLS_ORG: "*****"
-      #TLS_C: "US"
-      MAX_CONNECTIONS: "20"
-    volumes:
-      - "/home/ctolon/ftp-user:/home/test"
-      - "/home/ctolon/ftp-user:/home/kral"
-      - "/home/ctolon/ftp-pass:/etc/pure-ftpd/passwd"
-
   mlflow:
     build:
       context: ./docker/mlflow
@@ -56,7 +66,6 @@ services:
       args:
         - MLFLOW_ARTIFACT_DIR=$MLFLOW_ARTIFACT_DIR
         - MLFLOW_TRACKING_URI=$MLFLOW_TRACKING_URI
-        - MLFLOW_TRACKING_INSECURE_TLS=$MLFLOW_TRACKING_INSECURE_TLS
     container_name: mlflow-tracking_postgres
     image: mlflow-tracking:1.12.1
     hostname: mlflow-tracking
@@ -64,19 +73,17 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - MLFLOW_ARTIFACT_URI=${MLFLOW_ARTIFACT_DIR}
       - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
-      - FTP_USER_NAME=${FTP_USER_NAME}
-      - FTP_USER_PASS=${FTP_USER_PASS}
-      - FTP_USER_HOME=${FTP_USER_HOME}
-      - MLFLOW_TRACKING_INSECURE_TLS=${MLFLOW_TRACKING_INSECURE_TLS}
     depends_on:
       - postgresql
-      - ftpd_server
+      - ftp
     links:
       - "postgresql:postgresql"
-      - "ftpd_server:ftpd_server"
+      - "ftp:ftp"
     ports:
       - "5000:5000"
     volumes:
       - /home/ctolon/ftp-user:/home/username/mlruns
 
-
+#networks:
+  #A:
+    #driver: bridge

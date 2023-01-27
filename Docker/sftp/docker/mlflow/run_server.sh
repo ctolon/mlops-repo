@@ -6,3 +6,4 @@ run() {
 }
 
 run $* 2>&1 | tee server.log
+echo "hi"

@@ -26,7 +26,8 @@ RUN python -m pip install protobuf==3.20.*
 # Postgres main driver for production
 RUN python -m pip install psycopg2
 
-RUN python -m pip install pysftp==0.2.8
+#RUN python -m pip install pysftp==0.2.8
+RUN python -m pip install pysftp
 
 # test
 RUN pip install paramiko==2.8.1

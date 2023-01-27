@@ -1,8 +1,7 @@
-Host sftp
-  HostName sftp
-  User mlflowuser
-  IdentityFile ~/.ssh/id_rsa
-  PasswordAuthentication yes
-  Port 22
-  PubkeyAcceptedAlgorithms +ssh-rsa
-  HostkeyAlgorithms +ssh-rsa
+Host mlflow-tracking
+     Hostname sftp
+     User mlflowuser
+     IdentityFile ~/.ssh/mlflow.pub
+     Port 222
+     PubkeyAcceptedAlgorithms +ssh-rsa
+     HostkeyAlgorithms +ssh-rsa

@@ -1,7 +1,7 @@
 Host mlflow
      Hostname localhost
-     Port 22
+     Port 222
      User mlflow
-     IdentityFile ~/.ssh/id_rsa
+     IdentityFile ~/.ssh/mlflow.pub
      PubkeyAcceptedAlgorithms +ssh-rsa
      HostkeyAlgorithms +ssh-rsa
