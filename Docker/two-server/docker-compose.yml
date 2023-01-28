@@ -1,0 +1,108 @@
+version: '3'
+
+networks:
+  net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.5.0.0/16
+          gateway: 10.5.0.1
+          ip_range: 10.5.0.0/24
+
+services:
+  postgresql:
+    build:
+      context: ./docker/postgres
+      dockerfile: Dockerfile
+      args:
+        - POSTGRESQL_VERSION=$POSTGRESQL_VERSION
+    image: postgresql-shm:5.7.32
+    container_name: postgresql-shm
+    hostname: postgresql
+    environment:
+      - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+      - POSTGRES_HOST_AUTH_METHOD=$POSTGRES_HOST_AUTH_METHOD
+      - COMPOSE_HTTP_TIMEOUT=120
+    ports:
+      - "3307:3306"
+    volumes:
+      - $PWD/container_data/postgresql:/var/lib/postgresql
+      - $PWD/docker/postgres/init:/docker-entrypoint-initdb.d
+    cap_add: 
+      - SYS_NICE # CAP_SYS_NICE
+    networks:
+      net:
+        ipv4_address: 10.5.0.3
+
+  mlflow:
+    build:
+      context: ./docker/mlflow
+      dockerfile: Dockerfile
+      args:
+        - MLFLOW_ARTIFACT_DIR=$MLFLOW_ARTIFACT_DIR
+        - MLFLOW_TRACKING_URI=$MLFLOW_TRACKING_URI
+        - MLFLOW_TRACKING_INSECURE_TLS=$MLFLOW_TRACKING_INSECURE_TLS
+    container_name: mlflow-tracking
+    image: mlflow-tracking
+    hostname: mlflow-tracking
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - MLFLOW_ARTIFACT_URI=${MLFLOW_ARTIFACT_DIR}
+      - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
+      - MLFLOW_TRACKING_INSECURE_TLS=${MLFLOW_TRACKING_INSECURE_TLS}
+    depends_on:
+      - postgresql
+      - mlflow2
+    links:
+      - "postgresql:postgresql"
+      #- "mlflow2:mlflow2"
+    ports:
+      - "5000:5000"
+    volumes:
+      - /home/ctolon/mlartifacts/myruns:/mlartifacts
+    command: >
+      /bin/bash -c "sleep 3
+      && mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri postgresql+psycopg2://postgres:mysecret@postgresql/mlflow --default-artifact-root http://localhost:8001/api/2.0/mlflow-artifacts/artifacts/myruns"
+    networks:
+      net:
+        ipv4_address: 10.5.0.82
+
+
+  mlflow2:
+    build:
+      context: ./docker/mlflow2
+      dockerfile: Dockerfile
+      args:
+        - MLFLOW_ARTIFACT_DIR=$MLFLOW_ARTIFACT_DIR
+        - MLFLOW_TRACKING_URI=$MLFLOW_TRACKING_URI
+        #- MLFLOW_TRACKING_INSECURE_TLS=$MLFLOW_TRACKING_INSECURE_TLS
+    container_name: mlflow-artifact
+    image: mlflow-artifact
+    hostname: mlflow-artifact
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - MLFLOW_ARTIFACT_URI=${MLFLOW_ARTIFACT_DIR}
+      - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
+      #- MLFLOW_TRACKING_INSECURE_TLS=${MLFLOW_TRACKING_INSECURE_TLS}
+    depends_on:
+      - postgresql
+      #- mlflow
+    links:
+      - "postgresql:postgresql"
+    ports:
+      - "8001:8001"
+    volumes:
+      - /home/ctolon/mlartifacts:/mlartifacts
+      
+    command: >
+      /bin/bash -c "sleep 3
+      && mlflow server --host 0.0.0.0 --port 8001 --artifacts-destination /mlartifacts/myruns --serve-artifacts --artifacts-only"
+    networks:
+      net:
+        ipv4_address: 10.5.0.114
+
+
+
+          
+
+
