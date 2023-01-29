@@ -59,10 +59,10 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - /home/ctolon/mlartifacts/myruns:/mlartifacts
+      - ${HOME}/mlartifacts/mlruns:/mlartifacts
     command: >
       /bin/bash -c "sleep 3
-      && mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri postgresql+psycopg2://postgres:mysecret@postgresql/mlflow --default-artifact-root http://localhost:8001/api/2.0/mlflow-artifacts/artifacts/myruns"
+      && mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri postgresql+psycopg2://postgres:mysecret@postgresql/mlflow --default-artifact-root http://localhost:8001/api/2.0/mlflow-artifacts/artifacts/mlruns"
     networks:
       net:
         ipv4_address: 10.5.0.82
@@ -92,11 +92,11 @@ services:
     ports:
       - "8001:8001"
     volumes:
-      - /home/ctolon/mlartifacts:/mlartifacts
+      - ${HOME}/mlartifacts:/mlartifacts
       
     command: >
       /bin/bash -c "sleep 3
-      && mlflow server --host 0.0.0.0 --port 8001 --artifacts-destination /mlartifacts/myruns --serve-artifacts --artifacts-only"
+      && mlflow server --host 0.0.0.0 --port 8001 --artifacts-destination /mlartifacts/mlruns --serve-artifacts --artifacts-only"
     networks:
       net:
         ipv4_address: 10.5.0.114
